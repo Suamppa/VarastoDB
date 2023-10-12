@@ -8,12 +8,25 @@ def main():
     cur = connection.cursor()
     cur.execute("""
                 CREATE TABLE VARASTO
-                    (Tunniste       INT             NOT NULL,
+                    (VTunniste      INT             NOT NULL,
                      Osoite         VARCHAR(100),
                     PRIMARY KEY (Tunniste) );
                 """)
-    res = cur.execute("SELECT name FROM sqlite_master")
-    res.fetchone()
+    cur.execute("""
+                CREATE TABLE SIJAINTI
+                    (STunniste      INT             NOT NULL,
+                     Hyllyväli      INT,
+                     Sektio         INT,
+                     Kerros         INT,
+                     Kuormaruutu    VARCHAR(8),
+                     Varasto        INT,
+                    PRIMARY KEY (STunniste),
+                    FOREIGN KEY (Varasto) REFERENCES VARASTO(VTunniste)
+                                 ON DELETE CASCADE      ON UPDATE CASCADE );
+                """)
+    
+    # res = cur.execute("SELECT name FROM sqlite_master")
+    # print(res.fetchone())
 
 if __name__ == "__main__":
     main()
