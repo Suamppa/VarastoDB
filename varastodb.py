@@ -1,7 +1,8 @@
-import sqlite3
+import sqlite3 as sql
 
 def main():
-    pass
+    connection = sql.connect("varasto.db")
+    cur = connection.cursor()
 
 if __name__ == "__main__":
     main()
