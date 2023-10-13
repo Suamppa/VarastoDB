@@ -87,9 +87,6 @@ def main():
                     FOREIGN KEY (Eränumero) REFERENCES ERÄ(Eränumero)
                                  ON DELETE CASCADE ON UPDATE CASCADE );
                 """)
-    
-    # res = cur.execute("SELECT name FROM sqlite_master")
-    # print(res.fetchone())
 
 if __name__ == "__main__":
     main()
