@@ -2,11 +2,14 @@ import os
 import sqlite3 as sql
 
 def main():
+    # Remove previous database when script is run
     if os.path.exists("varasto.db"):
         os.remove("varasto.db")
     
     connection = sql.connect("varasto.db")
     cur = connection.cursor()
+    
+    # Create tables
     cur.execute("""
                 CREATE TABLE VARASTO
                     (VTunniste INT NOT NULL,
@@ -86,6 +89,14 @@ def main():
                                  ON DELETE CASCADE ON UPDATE CASCADE,
                     FOREIGN KEY (Eränumero) REFERENCES ERÄ(Eränumero)
                                  ON DELETE CASCADE ON UPDATE CASCADE );
+                """)
+    
+    # Add some items to the tables
+    cur.execute("""
+                INSERT INTO VARASTO
+                VALUES (145, 'Varastotie 13, 60100 Seinäjoki',
+                        113, 'Rekkaväylä 2, 60100 Seinäjoki');
+                -- Values are fictional
                 """)
 
 if __name__ == "__main__":
