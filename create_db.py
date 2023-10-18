@@ -1,6 +1,18 @@
+import datetime
 import os
 import random
 import sqlite3 as sql
+
+def randdate(yrange=[2024, 2027], mrange=[1, 12], drange=[1, 31]):
+    y = random.randint(yrange[0], yrange[1])
+    m = random.randint(mrange[0], mrange[1])
+    if drange[1] > 28:
+        if m == 2:
+            drange[1] = 28
+        elif drange[1] > 30 & m in [4, 6, 9, 11]:
+            drange[1] = 30
+    d = random.randint(drange[0], drange[1])
+    return datetime.date(y, m, d).isoformat()
 
 def main():
     # Remove previous database when script is run
@@ -47,10 +59,7 @@ def main():
                 """)
     cur.execute("""
                 CREATE TABLE SIIRTOTAPAHTUMA
-                    (Siirtoaika VARCHAR(23)
-                                CHECK (Siirtoaika LIKE
-                                    '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?$'
-                                ),
+                    (Siirtoaika VARCHAR(23) CHECK (Siirtoaika LIKE '____-__-__ __:__:__'),
                      Lavanumero INTEGER NOT NULL,
                      Sijainti INTEGER NOT NULL,
                     PRIMARY KEY (Lavanumero, Sijainti),
@@ -73,11 +82,11 @@ def main():
                 CREATE TABLE ERÄ
                     (Eränumero INTEGER NOT NULL,
                      Tuotenumero INTEGER NOT NULL,
-                     PE_pvm CHAR(10) CHECK (PE_pvm LIKE '^\\d{4}-\\d{2}-\\d{2}$'),
+                     PE_pvm CHAR(10) CHECK (PE_pvm LIKE '____-__-__'),
                      Myyntierät INTEGER DEFAULT 0,
                      ME_yksikkö VARCHAR(4) DEFAULT 'pkt',
-                     Paino DECIMAL(6,2) DEFAULT 0.,
-                     Painoyks VARCHAR(2) DEFAULT 'kg',
+                     Määrä DECIMAL(6,2) DEFAULT 0.,
+                     Määräyks VARCHAR(2) DEFAULT 'kg',
                      Ltk_määrä DECIMAL(5,2) DEFAULT 0.,
                     CONSTRAINT ERÄPA PRIMARY KEY (Eränumero, Tuotenumero),
                     CONSTRAINT ERÄTUOTEVA
@@ -130,12 +139,48 @@ def main():
     # Add some pallets
     lavat = []
     sijainnit = cur.execute("SELECT STunniste FROM SIJAINTI;")
-    paikat = random.choices(sijainnit.fetchall(), k=200)
+    sijainnit = sijainnit.fetchall()
+    paikat = random.choices(sijainnit, k=200)
     for paikka in paikat:
         lavat.append((random.choice(["EUR", "FIN", "TEH"]), paikka[0]))
     cur.executemany("INSERT INTO LAVA(Tyyppi, Sijainti) VALUES (?, ?);", lavat)
     for i in range(20):
         cur.execute("INSERT INTO LAVA(Tyyppi) VALUES (?);", (random.choice(["EUR", "FIN", "TEH"]),))
+    connection.commit()
+    
+    # Add some products
+    # Tuotenumero, Nimi, Valmistaja, Tuoteryhmä, Säilytyslt
+    cur.execute("""
+                INSERT INTO TUOTE(Nimi, Valmistaja, Tuoteryhmä, Säilytyslt) VALUES
+                    ('Luuton joulukinkku n. 5kg', 'Atria', 'Lihapakasteet', -18),
+                    ('Amppari-juomajää', 'Pirkka', 'Jäätelöt ja mehujäät', -18),
+                    ('Cocktail-perunapiirakka', 'Myllyn Paras', 'Leivät ja leivokset', -18),
+                    ('Pingviini vaniljajäätelö', 'Froneri', 'Jäätelöt ja mehujäät', -18);
+                """)
+    connection.commit()
+    
+    # Add some product batches
+    # Eränumero, Tuotenumero, PE_pvm, Myyntierät, ME_yksikkö, Määrä, Määräyks, Ltk_määrä
+    tuotteet = cur.execute("SELECT Tuotenumero FROM TUOTE;")
+    tuotteet = tuotteet.fetchall()
+    erat = []
+    ind = 0
+    met = (60, 300, 200, 500)
+    meyks = ("kpl", "pkt", "pss", "pkt")
+    maara = (met[0] * 5., met[1] * 0.83, met[2] * 0.45, met[3])
+    maarayks = ("kg", "kg", "kg", "l")
+    ltk = (met[0] / 3, met[1] / 6, met[2] / 4, met[3] / 5)
+    for tuote in tuotteet:
+        eramaara = random.randint(10, 30)
+        for x in range(eramaara):
+            pe = randdate()
+            erat.append((random.randint(1, 999999), tuote[0], pe, met[ind], meyks[ind], maara[ind], maarayks[ind], ltk[ind]))
+        ind += 1
+    cur.executemany("""
+                    INSERT INTO ERÄ(Eränumero, Tuotenumero, PE_pvm, Myyntierät, ME_yksikkö, Määrä, Määräyks, Ltk_määrä)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+                    """, erat)
+    connection.commit()
     
     ### TESTS
     # for row in cur.execute("SELECT * FROM SIJAINTI WHERE (Hyllyväli BETWEEN 3 AND 5) AND Varasto = 145;"):
@@ -150,6 +195,15 @@ def main():
     #                        -- WHERE STunniste IS NULL;
     #                        """):
     #     print(row)
+    # for row in cur.execute("""
+    #                        SELECT E.Eränumero, E.Tuotenumero, T.Nimi, T.Valmistaja, E.Myyntierät, E.ME_yksikkö, E.Määrä, E.Määräyks, E.Ltk_määrä
+    #                        FROM ERÄ E JOIN TUOTE T ON E.Tuotenumero = T.Tuotenumero;
+    #                        """):
+    #     print(row)
+    # for row in cur.execute("SELECT COUNT (*) FROM LAVA;"):
+    #     print("Lavoja:", row)
+    # for row in cur.execute("SELECT COUNT (*) FROM ERÄ;"):
+    #     print("Eriä:", row)
     
     connection.close()
 
