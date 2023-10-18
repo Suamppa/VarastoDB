@@ -1,4 +1,5 @@
 import os
+import random
 import sqlite3 as sql
 
 def main():
@@ -7,6 +8,7 @@ def main():
         os.remove("varasto.db")
     
     connection = sql.connect("varasto.db")
+    # connection.row_factory = sql.Row
     cur = connection.cursor()
     
     ### Create tables
@@ -95,13 +97,16 @@ def main():
     connection.commit()
     
     ### Add some items to the tables
+    # Add a couple of warehouse entries
     cur.execute("""
                 INSERT INTO VARASTO VALUES
                     (145, 'Varastotie 13, 60100 Seinäjoki'),
                     (113, 'Rekkaväylä 2, 60100 Seinäjoki');
                 -- Values are fictional
                 """)
+    connection.commit()
     
+    # Add some shelves and floor units
     hyllyt = []
     for vali in range(1, 31):
         for sektio in range(1, 9):
@@ -120,13 +125,30 @@ def main():
     cur.executemany("INSERT INTO SIJAINTI(Hyllyväli, Sektio, Kerros, Varasto) VALUES (?, ?, ?, 145);", hyllyt)
     cur.executemany("INSERT INTO SIJAINTI(Hyllyväli, Sektio, Kerros, Varasto) VALUES (?, ?, ?, 113);", hyllyt2)
     cur.executemany("INSERT INTO SIJAINTI(Kuormaruutu, Varasto) VALUES (?, 145);", ru_paikat)
-    
     connection.commit()
     
+    # Add some pallets
+    lavat = []
+    sijainnit = cur.execute("SELECT STunniste FROM SIJAINTI;")
+    paikat = random.choices(sijainnit.fetchall(), k=200)
+    for paikka in paikat:
+        lavat.append((random.choice(["EUR", "FIN", "TEH"]), paikka[0]))
+    cur.executemany("INSERT INTO LAVA(Tyyppi, Sijainti) VALUES (?, ?);", lavat)
+    for i in range(20):
+        cur.execute("INSERT INTO LAVA(Tyyppi) VALUES (?);", (random.choice(["EUR", "FIN", "TEH"]),))
+    
     ### TESTS
-    # for row in cur.execute("SELECT * FROM SIJAINTI WHERE (Hyllyväli BETWEEN 3 AND 5) AND Varasto = 145"):
+    # for row in cur.execute("SELECT * FROM SIJAINTI WHERE (Hyllyväli BETWEEN 3 AND 5) AND Varasto = 145;"):
     #     print(row)
-    # for row in cur.execute("SELECT * FROM SIJAINTI WHERE (Kuormaruutu LIKE 'RU200%') AND Varasto = 145"):
+    # for row in cur.execute("SELECT * FROM SIJAINTI WHERE (Kuormaruutu LIKE 'RU200%') AND Varasto = 145;"):
+    #     print(row)
+    # for row in cur.execute("SELECT COUNT (*) FROM SIJAINTI;"):
+    #     print(row)
+    # for row in cur.execute("""
+    #                        SELECT Tyyppi, Hyllyväli, Sektio, Kerros, Kuormaruutu, Varasto
+    #                        FROM LAVA LEFT OUTER JOIN SIJAINTI ON Sijainti = STunniste
+    #                        -- WHERE STunniste IS NULL;
+    #                        """):
     #     print(row)
     
     connection.close()
