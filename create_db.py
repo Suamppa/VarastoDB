@@ -137,6 +137,7 @@ def main():
     connection.commit()
     
     # Add some pallets
+    # Tyyppi, Sijainti, Lavanumero
     lavat = []
     sijainnit = cur.execute("SELECT STunniste FROM SIJAINTI;")
     sijainnit = sijainnit.fetchall()
@@ -170,7 +171,8 @@ def main():
     maara = (met[0] * 5., met[1] * 0.83, met[2] * 0.45, met[3])
     maarayks = ("kg", "kg", "kg", "l")
     ltk = (met[0] / 3, met[1] / 6, met[2] / 4, met[3] / 5)
-    for tuote in tuotteet:
+    ##### TODO: VAIHDA ENUMERATEEN #####
+    for tuote in (tuotteet):
         eramaara = random.randint(10, 30)
         for x in range(eramaara):
             pe = randdate()
@@ -182,28 +184,20 @@ def main():
                     """, erat)
     connection.commit()
     
-    ### TESTS
-    # for row in cur.execute("SELECT * FROM SIJAINTI WHERE (Hyllyväli BETWEEN 3 AND 5) AND Varasto = 145;"):
-    #     print(row)
-    # for row in cur.execute("SELECT * FROM SIJAINTI WHERE (Kuormaruutu LIKE 'RU200%') AND Varasto = 145;"):
-    #     print(row)
-    # for row in cur.execute("SELECT COUNT (*) FROM SIJAINTI;"):
-    #     print(row)
-    # for row in cur.execute("""
-    #                        SELECT Tyyppi, Hyllyväli, Sektio, Kerros, Kuormaruutu, Varasto
-    #                        FROM LAVA LEFT OUTER JOIN SIJAINTI ON Sijainti = STunniste
-    #                        -- WHERE STunniste IS NULL;
-    #                        """):
-    #     print(row)
-    # for row in cur.execute("""
-    #                        SELECT E.Eränumero, E.Tuotenumero, T.Nimi, T.Valmistaja, E.Myyntierät, E.ME_yksikkö, E.Määrä, E.Määräyks, E.Ltk_määrä
-    #                        FROM ERÄ E JOIN TUOTE T ON E.Tuotenumero = T.Tuotenumero;
-    #                        """):
-    #     print(row)
-    # for row in cur.execute("SELECT COUNT (*) FROM LAVA;"):
-    #     print("Lavoja:", row)
-    # for row in cur.execute("SELECT COUNT (*) FROM ERÄ;"):
-    #     print("Eriä:", row)
+    # Bind most batches to pallets
+    # Lavanumero, Eränumero
+    lavat = cur.execute("SELECT Lavanumero FROM LAVA;")
+    lavat = lavat.fetchall()
+    erat = cur.execute("SELECT Eränumero FROM ERÄ;")
+    erat = erat.fetchall()
+    siirto_lkm = int(len(erat) * (7/8))
+    val_lavat = random.choices(lavat, k=siirto_lkm)
+    val_erat = random.choices(erat, k=siirto_lkm)
+    siirrot = []
+    for i in range(siirto_lkm):
+        siirrot.append((val_lavat[i][0], val_erat[i][0]))
+    cur.executemany("INSERT INTO ERÄ_LAVALLA(Lavanumero, Eränumero) VALUES (?, ?);", siirrot)
+    connection.commit()
     
     connection.close()
 
