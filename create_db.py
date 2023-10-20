@@ -15,17 +15,17 @@ def main():
         cur.execute("""
                     CREATE TABLE VARASTO
                         (VTunniste INTEGER NOT NULL,
-                        Osoite VARCHAR(100),
+                         Osoite VARCHAR(100),
                         CONSTRAINT VARASTOPA PRIMARY KEY (VTunniste) );
                     """)
         cur.execute("""
                     CREATE TABLE SIJAINTI
                         (Hyllyväli INTEGER,
-                        Sektio INTEGER,
-                        Kerros INTEGER,
-                        Kuormaruutu VARCHAR(8),
-                        Varasto INTEGER,
-                        STunniste INTEGER,
+                         Sektio INTEGER,
+                         Kerros INTEGER,
+                         Kuormaruutu VARCHAR(8),
+                         Varasto INTEGER,
+                         STunniste INTEGER NOT NULL,
                         CONSTRAINT SIJAINTIPA PRIMARY KEY (STunniste),
                         CONSTRAINT HYLLYTA UNIQUE (Hyllyväli, Sektio, Kerros, Varasto),
                         CONSTRAINT RUTA UNIQUE (Kuormaruutu, Varasto),
@@ -38,8 +38,8 @@ def main():
                         (Tyyppi CHAR(3)
                                 CHECK (Tyyppi = 'EUR' OR Tyyppi = 'FIN' OR Tyyppi = 'TEH')
                                 NOT NULL DEFAULT 'EUR',
-                        Sijainti INTEGER,
-                        Lavanumero INTEGER NOT NULL,
+                         Sijainti INTEGER,
+                         Lavanumero INTEGER NOT NULL,
                         CONSTRAINT LAVAPA PRIMARY KEY (Lavanumero),
                         CONSTRAINT LAVASIJVA
                         FOREIGN KEY (Sijainti) REFERENCES SIJAINTI(STunniste)
@@ -48,8 +48,8 @@ def main():
         cur.execute("""
                     CREATE TABLE SIIRTOTAPAHTUMA
                         (Siirtoaika VARCHAR(23) CHECK (Siirtoaika LIKE '____-__-__ __:__:__'),
-                        Lavanumero INTEGER NOT NULL,
-                        Sijainti INTEGER NOT NULL,
+                         Lavanumero INTEGER NOT NULL,
+                         Sijainti INTEGER NOT NULL,
                         PRIMARY KEY (Lavanumero, Sijainti),
                         FOREIGN KEY (Lavanumero) REFERENCES LAVA(Lavanumero)
                                     ON DELETE CASCADE ON UPDATE CASCADE,
@@ -59,23 +59,23 @@ def main():
         cur.execute("""
                     CREATE TABLE TUOTE
                         (Tuotenumero INTEGER NOT NULL,
-                        Nimi VARCHAR(50) NOT NULL,
-                        Valmistaja VARCHAR(25),
-                        Tuoteryhmä VARCHAR(50) NOT NULL DEFAULT 'Muut',
-                        Säilytyslt INTEGER NOT NULL DEFAULT 21,
+                         Nimi VARCHAR(50) NOT NULL,
+                         Valmistaja VARCHAR(25),
+                         Tuoteryhmä VARCHAR(50) NOT NULL DEFAULT 'Muut',
+                         Säilytyslt INTEGER NOT NULL DEFAULT 21,
                         CONSTRAINT TUOTEPA PRIMARY KEY (Tuotenumero),
                         CONSTRAINT TUOTETA UNIQUE (Nimi, Valmistaja) );
                     """)
         cur.execute("""
                     CREATE TABLE ERÄ
                         (Eränumero INTEGER NOT NULL,
-                        Tuotenumero INTEGER NOT NULL,
-                        PE_pvm CHAR(10) CHECK (PE_pvm LIKE '____-__-__'),
-                        Myyntierät INTEGER DEFAULT 0,
-                        ME_yksikkö VARCHAR(4) DEFAULT 'pkt',
-                        Määrä DECIMAL(6,2) DEFAULT 0.,
-                        Määräyks VARCHAR(2) DEFAULT 'kg',
-                        Ltk_määrä DECIMAL(5,2) DEFAULT 0.,
+                         Tuotenumero INTEGER NOT NULL,
+                         PE_pvm CHAR(10) CHECK (PE_pvm LIKE '____-__-__'),
+                         Myyntierät INTEGER DEFAULT 0,
+                         ME_yksikkö VARCHAR(4) DEFAULT 'pkt',
+                         Määrä DECIMAL(6,2) DEFAULT 0.,
+                         Määräyks VARCHAR(2) DEFAULT 'kg',
+                         Ltk_määrä DECIMAL(5,2) DEFAULT 0.,
                         CONSTRAINT ERÄPA PRIMARY KEY (Eränumero, Tuotenumero),
                         CONSTRAINT ERÄTUOTEVA
                         FOREIGN KEY (Tuotenumero) REFERENCES TUOTE(Tuotenumero)
@@ -84,7 +84,7 @@ def main():
         cur.execute("""
                     CREATE TABLE ERÄ_LAVALLA
                         (Lavanumero INTEGER NOT NULL,
-                        Eränumero INTEGER NOT NULL,
+                         Eränumero INTEGER NOT NULL,
                         PRIMARY KEY (Lavanumero, Eränumero),
                         FOREIGN KEY (Lavanumero) REFERENCES LAVA(Lavanumero)
                                     ON DELETE CASCADE ON UPDATE CASCADE,
@@ -128,9 +128,6 @@ def main():
         sijainnit = cur.execute("SELECT STunniste FROM SIJAINTI;")
         sijainnit = sijainnit.fetchall()
         paikat = random.sample(sijainnit, k=200)
-        # for paikka in paikat:
-        #     lavat.append((random.choice(["EUR", "FIN", "TEH"]), paikka[0]))
-        # cur.executemany("INSERT INTO LAVA(Tyyppi, Sijainti) VALUES (?, ?);", lavat)
         for i in range(220):
             cur.execute("INSERT INTO LAVA(Tyyppi) VALUES (?);", (random.choice(["EUR", "FIN", "TEH"]),))
         lavat = cur.execute("SELECT Lavanumero FROM LAVA;")
