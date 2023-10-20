@@ -1,18 +1,8 @@
-import datetime
+# import datetime
 import os
 import random
 import sqlite3 as sql
-
-def randdate(yrange=[2024, 2027], mrange=[1, 12], drange=[1, 31]):
-    y = random.randint(yrange[0], yrange[1])
-    m = random.randint(mrange[0], mrange[1])
-    if drange[1] > 28:
-        if m == 2:
-            drange[1] = 28
-        elif drange[1] > 30 & m in [4, 6, 9, 11]:
-            drange[1] = 30
-    d = random.randint(drange[0], drange[1])
-    return datetime.date(y, m, d).isoformat()
+import varastologiikka as vl
 
 def main():
     # Remove previous database when script is run
@@ -175,7 +165,7 @@ def main():
     for tuote in (tuotteet):
         eramaara = random.randint(10, 30)
         for x in range(eramaara):
-            pe = randdate()
+            pe = vl.randdate()
             erat.append((random.randint(1, 999999), tuote[0], pe, met[ind], meyks[ind], maara[ind], maarayks[ind], ltk[ind]))
         ind += 1
     cur.executemany("""
