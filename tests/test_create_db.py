@@ -43,9 +43,45 @@ class TestCreateDB(unittest.TestCase):
             count = cursor.fetchone()[0]
             self.assertGreater(count, 0)
     
+    def test_pallet_entries(self):
+        with vl.Connection("varasto.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM LAVA;")
+            count = cursor.fetchone()[0]
+            self.assertGreater(count, 0)
+    
+    def test_movement_entries(self):
+        with vl.Connection("varasto.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM SIIRTOTAPAHTUMA;")
+            count = cursor.fetchone()[0]
+            self.assertGreater(count, 0)
+    
+    def test_product_entries(self):
+        with vl.Connection("varasto.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM TUOTE;")
+            count = cursor.fetchone()[0]
+            self.assertGreater(count, 0)
+    
+    def test_batch_entries(self):
+        with vl.Connection("varasto.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM ERÄ;")
+            count = cursor.fetchone()[0]
+            self.assertGreater(count, 0)
+    
+    def test_batches_on_pallets(self):
+        with vl.Connection("varasto.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM ERÄ_LAVALLA;")
+            count = cursor.fetchone()[0]
+            self.assertGreater(count, 0)
+    
     def tearDown(self):
         # Remove the database after all tests have run
-        os.remove("varasto.db")
+        if os.path.exists("varasto.db"):
+            os.remove("varasto.db")
 
 
 if __name__ == "__main__":
