@@ -30,22 +30,31 @@ class Connection:
             self._connection.close()
             self._connection = None
 
+def handle_input(options: dict, prompt="Valitse toiminto: "):
+    while True:
+        for key, value in options.items():
+            print("{}. {}".format(value, key))
+        choice = input(prompt).lower()
+        if choice in options:
+            return choice
+        print("Virheellinen syöte, yritä uudelleen.")
+
 # Siirtoaika, Lavanumero, Sijainti
-def lavasiirto(cur: sql.Cursor, lava, minne):
+def move_pallet(cur: sql.Cursor, pallet, move_to):
     """
     Moves a pallet from one location to another and logs the transaction in the database.
 
     Args:
         cur (sqlite3.Cursor): The cursor object for the database connection.
-        lava (int): The pallet number to be moved.
-        minne (int): The id of the new location of the pallet.
+        pallet (int): The pallet number to be moved.
+        move_to (int): The id of the new location of the pallet.
 
     Returns:
         None
     """
-    cur.execute("UPDATE LAVA SET Sijainti = ? WHERE Lavanumero = ?", (minne, lava))
+    cur.execute("UPDATE LAVA SET Sijainti = ? WHERE Lavanumero = ?", (move_to, pallet))
     cur.execute("INSERT INTO SIIRTOTAPAHTUMA VALUES (?, ?, ?)",
-                (datetime.datetime.now().isoformat(" ", "seconds"), lava, minne))
+                (datetime.datetime.now().isoformat(" ", "seconds"), pallet, move_to))
 
 def randdate(yrange=[2024, 2027], mrange=[1, 12], drange=[1, 31]):
     """
