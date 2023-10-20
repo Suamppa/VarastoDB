@@ -3,15 +3,17 @@ import random
 import sys
 import varastologiikka as vl
 
-def main():
+def create_db():
     db_name = "varasto.db"
     populate_db = True
     args = sys.argv[1:]
-    if len(args) > 1:
+    if len(args) > 0:
         if "-t" in args or "--test" in args:
             db_name = "test.db"
         if "-e" in args or "--empty" in args:
             populate_db = False
+    
+    print("Creating database '{}'...".format(db_name))
     
     # Remove previous database when script is run
     if os.path.exists(db_name):
@@ -192,6 +194,7 @@ def main():
         cur.executemany("INSERT INTO ERÄ_LAVALLA(Lavanumero, Eränumero) VALUES (?, ?);", siirrot)
         
         connection.commit()
+        print("Database '{}' created.".format(db_name))
 
 if __name__ == "__main__":
-    main()
+    create_db()
