@@ -127,7 +127,7 @@ def main():
         # Tyyppi, Sijainti, Lavanumero
         sijainnit = cur.execute("SELECT STunniste FROM SIJAINTI;")
         sijainnit = sijainnit.fetchall()
-        paikat = random.choices(sijainnit, k=200)
+        paikat = random.sample(sijainnit, k=200)
         # for paikka in paikat:
         #     lavat.append((random.choice(["EUR", "FIN", "TEH"]), paikka[0]))
         # cur.executemany("INSERT INTO LAVA(Tyyppi, Sijainti) VALUES (?, ?);", lavat)
@@ -174,8 +174,8 @@ def main():
         erat = cur.execute("SELECT Eränumero FROM ERÄ;")
         erat = erat.fetchall()
         siirto_lkm = int(len(erat) * (7/8))
-        val_lavat = random.choices(lavat, k=siirto_lkm)
-        val_erat = random.choices(erat, k=siirto_lkm)
+        val_lavat = random.sample(lavat, k=siirto_lkm)
+        val_erat = random.sample(erat, k=siirto_lkm)
         siirrot = []
         for i in range(siirto_lkm):
             siirrot.append((val_lavat[i][0], val_erat[i][0]))
