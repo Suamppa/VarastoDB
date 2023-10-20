@@ -1,14 +1,23 @@
-# import datetime
 import os
 import random
+import sys
 import varastologiikka as vl
 
 def main():
-    # Remove previous database when script is run
-    if os.path.exists("varasto.db"):
-        os.remove("varasto.db")
+    db_name = "varasto.db"
+    populate_db = True
+    args = sys.argv[1:]
+    if len(args) > 1:
+        if "-t" in args or "--test" in args:
+            db_name = "test.db"
+        if "-e" in args or "--empty" in args:
+            populate_db = False
     
-    with vl.Connection("varasto.db") as connection:
+    # Remove previous database when script is run
+    if os.path.exists(db_name):
+        os.remove(db_name)
+    
+    with vl.Connection(db_name) as connection:
         cur = connection.cursor()
     
         ### Create tables
@@ -91,6 +100,10 @@ def main():
                         FOREIGN KEY (Eränumero) REFERENCES ERÄ(Eränumero)
                                     ON DELETE CASCADE ON UPDATE CASCADE );
                     """)
+        
+        connection.commit()
+        if not populate_db:
+            return
     
         ### Add some items to the tables
         # Add a couple of warehouse entries
