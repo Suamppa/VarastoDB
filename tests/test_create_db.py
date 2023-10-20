@@ -12,6 +12,11 @@ class TestCreateDB(unittest.TestCase):
         # Create a new database
         os.system("python create_db.py -t")
     
+    def tearDown(self):
+        # Remove the database after all tests have run
+        if os.path.exists("varasto.db"):
+            os.remove("varasto.db")
+    
     def test_database_exists(self):
         self.assertTrue(os.path.exists("varasto.db"))
     
@@ -76,12 +81,6 @@ class TestCreateDB(unittest.TestCase):
             cursor.execute("SELECT COUNT(*) FROM ERÄ_LAVALLA;")
             count = cursor.fetchone()[0]
             self.assertGreater(count, 0)
-    
-    def tearDown(self):
-        # Remove the database after all tests have run
-        if os.path.exists("varasto.db"):
-            os.remove("varasto.db")
-
 
 if __name__ == "__main__":
     unittest.main()
