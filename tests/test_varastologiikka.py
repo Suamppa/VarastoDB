@@ -36,7 +36,7 @@ class TestVarastoLogiikka(unittest.TestCase):
     def test_lavasiirto(self):
         with vl.Connection(self.db_path) as conn:
             cur = conn.cursor()
-            vl.lavasiirto(cur, "LAVA1", "SIJAINTI1")
+            vl.move_pallet(cur, "LAVA1", "SIJAINTI1")
             cur.execute("SELECT * FROM LAVA")
             result = cur.fetchone()
             self.assertEqual(result[0], "SIJAINTI1")
