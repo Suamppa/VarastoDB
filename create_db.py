@@ -13,7 +13,7 @@ def create_db():
         if "-e" in args or "--empty" in args:
             populate_db = False
     
-    print("Creating database '{}'...".format(db_name))
+    print("Luodaan tietokanta '{}'...".format(db_name))
     
     # Remove previous database when script is run
     if os.path.exists(db_name):
@@ -148,7 +148,7 @@ def create_db():
         lavat = cur.execute("SELECT Lavanumero FROM LAVA;")
         lavat = lavat.fetchall()
         for i, paikka in enumerate(paikat):
-            vl.lavasiirto(cur, lavat[i][0], paikka[0])
+            vl.move_pallet(cur, lavat[i][0], paikka[0])
         
         # Add some products
         # Tuotenumero, Nimi, Valmistaja, Tuoteryhmä, Säilytyslt
@@ -194,7 +194,7 @@ def create_db():
         cur.executemany("INSERT INTO ERÄ_LAVALLA(Lavanumero, Eränumero) VALUES (?, ?);", siirrot)
         
         connection.commit()
-        print("Database '{}' created.".format(db_name))
+        print("Tietokanta '{}' luotu.".format(db_name))
 
 if __name__ == "__main__":
     create_db()
