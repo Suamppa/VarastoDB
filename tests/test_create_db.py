@@ -4,6 +4,7 @@ import unittest
 import varastologiikka as vl
 
 class TestCreateDB(unittest.TestCase):
+    
     def setUp(self):
         # Remove previous database if it exists
         if os.path.exists("test.db"):
