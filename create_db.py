@@ -97,6 +97,7 @@ def main():
     
     ### Add some items to the tables
     # Add a couple of warehouse entries
+    # VTunniste, Osoite
     cur.execute("""
                 INSERT INTO VARASTO VALUES
                     (145, 'Varastotie 13, 60100 Seinäjoki'),
@@ -106,6 +107,7 @@ def main():
     connection.commit()
     
     # Add some shelves and floor units
+    # Hyllyväli, Sektio, Kerros, Kuormaruutu, Varasto, STunniste
     hyllyt = []
     for vali in range(1, 31):
         for sektio in range(1, 9):
@@ -161,13 +163,11 @@ def main():
     maara = (met[0] * 5., met[1] * 0.83, met[2] * 0.45, met[3])
     maarayks = ("kg", "kg", "kg", "l")
     ltk = (met[0] / 3, met[1] / 6, met[2] / 4, met[3] / 5)
-    ##### TODO: VAIHDA ENUMERATEEN #####
-    for tuote in (tuotteet):
+    for ind, tuote in enumerate(tuotteet):
         eramaara = random.randint(10, 30)
         for x in range(eramaara):
             pe = vl.randdate()
             erat.append((random.randint(1, 999999), tuote[0], pe, met[ind], meyks[ind], maara[ind], maarayks[ind], ltk[ind]))
-        ind += 1
     cur.executemany("""
                     INSERT INTO ERÄ(Eränumero, Tuotenumero, PE_pvm, Myyntierät, ME_yksikkö, Määrä, Määräyks, Ltk_määrä)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?);
