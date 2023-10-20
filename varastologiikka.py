@@ -2,13 +2,25 @@ import datetime
 import random
 import sqlite3 as sql
 
+class Connection:
+    def __init__(self, db_path):
+        self.db_path = db_path
+        self._connection = None
+
+    def __enter__(self):
+        self._connection = sql.connect(self.db_path)
+        return self._connection
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._connection is not None:
+            self._connection.close()
+            self._connection = None
+
 # Siirtoaika, Lavanumero, Sijainti
-def lavasiirto(lava, minne):
-    connection = sql.connect("varasto.db")
-    cur = connection.cursor()
+def lavasiirto(cur: sql.Cursor, lava, minne):
     cur.execute("UPDATE LAVA SET Sijainti = ? WHERE Lavanumero = ?", (minne, lava))
     cur.execute("INSERT INTO SIIRTOTAPAHTUMA VALUES (?, ?, ?)",
-                (datetime.datetime.now().isoformat(), lava, minne))
+                (datetime.datetime.now().isoformat(" ", "seconds"), lava, minne))
 
 def randdate(yrange=[2024, 2027], mrange=[1, 12], drange=[1, 31]):
     y = random.randint(yrange[0], yrange[1])
