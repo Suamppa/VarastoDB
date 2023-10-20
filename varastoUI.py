@@ -5,7 +5,7 @@ def main():
     with vl.Connection("varasto.db") as connection:
         print("Yhdistetty tietokantaan varasto.db.\n")
         
-        options = {"Selaa tietoja": "1", "Lisää tietoja": "2", "Poistu": "0"}
+        options = {"1": "Selaa tietoja", "2": "Lisää tietoja", "0": "Poistu"}
         choice = vl.handle_input(options)
         
         while choice != "0":

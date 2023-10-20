@@ -33,7 +33,7 @@ class Connection:
 def handle_input(options: dict, prompt="Valitse toiminto: "):
     while True:
         for key, value in options.items():
-            print("{}. {}".format(value, key))
+            print("{}. {}".format(key, value))
         choice = input(prompt).lower()
         if choice in options:
             return choice
