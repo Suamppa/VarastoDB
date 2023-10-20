@@ -59,6 +59,26 @@ def randdate(yrange=[2024, 2027], mrange=[1, 12], drange=[1, 31]):
     Returns:
         str: A string representing a random date in ISO format (YYYY-MM-DD).
     """
+    # Check that the ranges are valid
+    if yrange[0] > yrange[1]:
+        yrange = [yrange[1], yrange[0]]
+    if mrange[0] > mrange[1]:
+        mrange = [mrange[1], mrange[0]]
+    if drange[0] > drange[1]:
+        drange = [drange[1], drange[0]]
+    if yrange[0] < datetime.MINYEAR:
+        yrange[0] = datetime.MINYEAR
+    if yrange[1] > datetime.MAXYEAR:
+        yrange[1] = datetime.MAXYEAR
+    if mrange[0] < 1:
+        mrange[0] = 1
+    if mrange[1] > 12:
+        mrange[1] = 12
+    if drange[0] < 1:
+        drange[0] = 1
+    if drange[1] > 31:
+        drange[1] = 31
+    
     y = random.randint(yrange[0], yrange[1])
     m = random.randint(mrange[0], mrange[1])
     if drange[1] > 28:
