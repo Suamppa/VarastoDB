@@ -1,7 +1,6 @@
 import os
 import unittest
 
-import create_db
 import varastologiikka as vl
 
 class TestCreateDB(unittest.TestCase):
@@ -11,7 +10,7 @@ class TestCreateDB(unittest.TestCase):
             os.remove("varasto.db")
         
         # Create a new database
-        create_db.main()
+        os.system("python create_db.py -t")
     
     def test_database_exists(self):
         self.assertTrue(os.path.exists("varasto.db"))
