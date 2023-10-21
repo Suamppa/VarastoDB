@@ -1,5 +1,4 @@
 import datetime
-import os
 import random
 import sqlite3 as sql
 
