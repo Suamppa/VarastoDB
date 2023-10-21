@@ -28,7 +28,7 @@ def create_db():
         cur.execute("""
                     CREATE TABLE VARASTO
                         (VTunniste INTEGER NOT NULL,
-                         Osoite VARCHAR(100),
+                         Osoite VARCHAR(100) COLLATE NOCASE,
                         CONSTRAINT VARASTOPA PRIMARY KEY (VTunniste) );
                     """)
         cur.execute("""
@@ -36,7 +36,7 @@ def create_db():
                         (Hyllyväli INTEGER,
                          Sektio INTEGER,
                          Kerros INTEGER,
-                         Kuormaruutu VARCHAR(8),
+                         Kuormaruutu VARCHAR(8) COLLATE NOCASE,
                          Varasto INTEGER,
                          STunniste INTEGER NOT NULL,
                         CONSTRAINT SIJAINTIPA PRIMARY KEY (STunniste),
@@ -50,7 +50,7 @@ def create_db():
                     CREATE TABLE LAVA
                         (Tyyppi CHAR(3)
                                 CHECK (Tyyppi = 'EUR' OR Tyyppi = 'FIN' OR Tyyppi = 'TEH')
-                                NOT NULL DEFAULT 'EUR',
+                                NOT NULL DEFAULT 'EUR' COLLATE NOCASE,
                          Sijainti INTEGER,
                          Lavanumero INTEGER NOT NULL,
                         CONSTRAINT LAVAPA PRIMARY KEY (Lavanumero),
@@ -72,9 +72,9 @@ def create_db():
         cur.execute("""
                     CREATE TABLE TUOTE
                         (Tuotenumero INTEGER NOT NULL,
-                         Nimi VARCHAR(50) NOT NULL,
-                         Valmistaja VARCHAR(25),
-                         Tuoteryhmä VARCHAR(50) NOT NULL DEFAULT 'Muut',
+                         Nimi VARCHAR(50) NOT NULL COLLATE NOCASE,
+                         Valmistaja VARCHAR(25) COLLATE NOCASE,
+                         Tuoteryhmä VARCHAR(50) NOT NULL DEFAULT 'Muut' COLLATE NOCASE,
                          Säilytyslt INTEGER NOT NULL DEFAULT 21,
                         CONSTRAINT TUOTEPA PRIMARY KEY (Tuotenumero),
                         CONSTRAINT TUOTETA UNIQUE (Nimi, Valmistaja) );
@@ -85,9 +85,9 @@ def create_db():
                          Tuotenumero INTEGER NOT NULL,
                          PE_pvm CHAR(10) CHECK (PE_pvm LIKE '____-__-__'),
                          Myyntierät INTEGER DEFAULT 0,
-                         ME_yksikkö VARCHAR(4) DEFAULT 'pkt',
+                         ME_yksikkö VARCHAR(4) DEFAULT 'pkt' COLLATE NOCASE,
                          Määrä DECIMAL(6,2) DEFAULT 0.,
-                         Määräyks VARCHAR(2) DEFAULT 'kg',
+                         Määräyks VARCHAR(2) DEFAULT 'kg' COLLATE NOCASE,
                          Ltk_määrä DECIMAL(5,2) DEFAULT 0.,
                         CONSTRAINT ERÄPA PRIMARY KEY (Eränumero, Tuotenumero),
                         CONSTRAINT ERÄTUOTEVA
