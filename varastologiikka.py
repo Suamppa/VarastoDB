@@ -1,4 +1,5 @@
 import datetime
+import os
 import random
 import sqlite3 as sql
 
@@ -39,22 +40,41 @@ def handle_input(options: dict, prompt="Valitse toiminto: "):
             return choice
         print("Virheellinen syöte, yritä uudelleen.")
 
-# Siirtoaika, Lavanumero, Sijainti
-def move_pallet(cur: sql.Cursor, pallet, move_to):
+def move_pallet(database, pallet, move_to):
     """
-    Moves a pallet from one location to another and logs the transaction in the database.
+    Moves a pallet to a new location in the warehouse and records the transaction in the database.
 
     Args:
-        cur (sqlite3.Cursor): The cursor object for the database connection.
-        pallet (int): The pallet number to be moved.
-        move_to (int): The id of the new location of the pallet.
+        database (str): The filepath of the database.
+        pallet (int): The ID of the pallet to be moved.
+        move_to (int): The ID of the new location of the pallet.
 
     Returns:
         None
     """
-    cur.execute("UPDATE LAVA SET Sijainti = ? WHERE Lavanumero = ?", (move_to, pallet))
-    cur.execute("INSERT INTO SIIRTOTAPAHTUMA VALUES (?, ?, ?)",
-                (datetime.datetime.now().isoformat(" ", "seconds"), pallet, move_to))
+    with Connection(database) as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE LAVA SET Sijainti = ? WHERE Lavanumero = ?", (move_to, pallet))
+        cur.execute("INSERT INTO SIIRTOTAPAHTUMA VALUES (?, ?, ?)",
+                    (datetime.datetime.now().isoformat(" ", "seconds"), pallet, move_to))
+        conn.commit()
+
+# Siirtoaika, Lavanumero, Sijainti
+# def move_pallet(cur: sql.Cursor, pallet, move_to):
+#     """
+#     Moves a pallet from one location to another and logs the transaction in the database.
+
+#     Args:
+#         cur (sqlite3.Cursor): The cursor object for the database connection.
+#         pallet (int): The pallet number to be moved.
+#         move_to (int): The id of the new location of the pallet.
+
+#     Returns:
+#         None
+#     """
+#     cur.execute("UPDATE LAVA SET Sijainti = ? WHERE Lavanumero = ?", (move_to, pallet))
+#     cur.execute("INSERT INTO SIIRTOTAPAHTUMA VALUES (?, ?, ?)",
+#                 (datetime.datetime.now().isoformat(" ", "seconds"), pallet, move_to))
 
 def randdate(yrange=[2024, 2027], mrange=[1, 12], drange=[1, 31]):
     """
