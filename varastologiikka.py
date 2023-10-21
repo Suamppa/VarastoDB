@@ -3,6 +3,7 @@ import pandas as pd
 import random
 import sqlite3 as sql
 
+# TODO: This class will turn private (_Connection) in the future
 class Connection:
     """
     A context manager for connecting to a SQLite database.
@@ -24,6 +25,7 @@ class Connection:
 
     def __enter__(self):
         self._connection = sql.connect(self.db_path)
+        self._connection.create_function("SIJAINTI_STR", 4, location_to_str, deterministic=True)
         return self._connection
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -40,6 +42,19 @@ class Database:
             conn (Connection): A reference to the connection to the database.
         """
         self._conn = conn
+    
+    def sanitize(self, string: str):
+        """
+        Sanitizes a string for use in SQL queries. Not bulletproof.
+
+        Args:
+            string (str): The string to sanitize.
+
+        Returns:
+            str: The sanitized string.
+        """
+        return (string.strip().replace("'", "''").replace('"', '""').replace(";", "")
+                .replace("--", "").replace("/*", "").replace("*/", ""))
     
     def query(self, query: str, params: tuple=()):
         """
@@ -71,10 +86,9 @@ class Database:
         Returns:
             list: A list of tuples containing the retrieved data.
         """
-        with self._conn as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT {} FROM {}".format(select, table_name))
-            return cur.fetchall()
+        table_name = self.sanitize(table_name)
+        select = self.sanitize(select)
+        return self.query("SELECT {} FROM {}", (select, table_name))
     
     def print_table(self, table_name: str, select="*"):
         """
@@ -87,19 +101,36 @@ class Database:
         Returns:
             None
         """
+        table_name = self.sanitize(table_name)
+        select = self.sanitize(select)
         with self._conn as conn:
             print(pd.read_sql_query("SELECT {} FROM {}".format(select, table_name), conn))
         print()
     
-    def location_to_str(self, location: tuple):
-        if len(location) != 6:
-            raise ValueError("Location must be a tuple of length 6.")
-        if location[3] is None:
-            return "{}-{}-{}".format(location[0], location[1], location[2])
-        else:
-            return location[3]
+    def move_pallet(self, pallet: int, move_to: int):
+        """
+        Moves a pallet to a new location in the warehouse and records the transaction in the database.
 
-def handle_input(options: dict, prompt="Valitse toiminto: "):
+        Args:
+            pallet (int): The ID of the pallet to be moved.
+            move_to (int): The ID of the new location of the pallet.
+
+        Returns:
+            None
+        """
+        with self._conn as conn:
+            cur = conn.cursor()
+            cur.execute("UPDATE LAVA SET Sijainti = ? WHERE Lavanumero = ?", (move_to, pallet))
+            cur.execute("INSERT INTO SIIRTOTAPAHTUMA VALUES (?, ?, ?)",
+                        (datetime.datetime.now().isoformat(" ", "seconds"), pallet, move_to))
+            conn.commit()
+    
+def location_to_str(aisle: int|None, section: int|None, floor: int|None, floor_unit: str|None):
+    if aisle is None or section is None or floor is None:
+        return floor_unit
+    return "{}-{}-{}".format(aisle, section, floor)
+
+def handle_input(options: dict[str, str], prompt="Valitse toiminto: "):
     while True:
         for key, value in options.items():
             print("{}. {}".format(key, value))
@@ -108,42 +139,6 @@ def handle_input(options: dict, prompt="Valitse toiminto: "):
         if choice in options:
             return choice
         print("Virheellinen syöte, yritä uudelleen.")
-
-def move_pallet(database, pallet, move_to):
-    """
-    Moves a pallet to a new location in the warehouse and records the transaction in the database.
-
-    Args:
-        database (str): The filepath of the database.
-        pallet (int): The ID of the pallet to be moved.
-        move_to (int): The ID of the new location of the pallet.
-
-    Returns:
-        None
-    """
-    with Connection(database) as conn:
-        cur = conn.cursor()
-        cur.execute("UPDATE LAVA SET Sijainti = ? WHERE Lavanumero = ?", (move_to, pallet))
-        cur.execute("INSERT INTO SIIRTOTAPAHTUMA VALUES (?, ?, ?)",
-                    (datetime.datetime.now().isoformat(" ", "seconds"), pallet, move_to))
-        conn.commit()
-
-# Siirtoaika, Lavanumero, Sijainti
-# def move_pallet(cur: sql.Cursor, pallet, move_to):
-#     """
-#     Moves a pallet from one location to another and logs the transaction in the database.
-
-#     Args:
-#         cur (sqlite3.Cursor): The cursor object for the database connection.
-#         pallet (int): The pallet number to be moved.
-#         move_to (int): The id of the new location of the pallet.
-
-#     Returns:
-#         None
-#     """
-#     cur.execute("UPDATE LAVA SET Sijainti = ? WHERE Lavanumero = ?", (move_to, pallet))
-#     cur.execute("INSERT INTO SIIRTOTAPAHTUMA VALUES (?, ?, ?)",
-#                 (datetime.datetime.now().isoformat(" ", "seconds"), pallet, move_to))
 
 def randdate(yrange=[2024, 2027], mrange=[1, 12], drange=[1, 31]):
     """
