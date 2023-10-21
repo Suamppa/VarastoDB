@@ -1,4 +1,5 @@
 import datetime
+import pandas as pd
 import random
 import sqlite3 as sql
 
@@ -30,11 +31,80 @@ class Connection:
             self._connection.close()
             self._connection = None
 
+class Database:
+    def __init__(self, conn: Connection):
+        """
+        Initializes a new instance of the Database class.
+
+        Args:
+            conn (Connection): A reference to the connection to the database.
+        """
+        self._conn = conn
+    
+    def query(self, query: str, params: tuple=()):
+        """
+        Executes the given SQL query with the given parameters and returns the result set.
+
+        Args:
+            query (str): The SQL query to execute.
+            params (tuple, optional): The parameters to use in the query. Defaults to ().
+
+        Returns:
+            list: The result set of the query.
+        """
+        with self._conn as conn:
+            cur = conn.cursor()
+            if not len(params):
+                cur.execute(query)
+            else:
+                cur.execute(query, params)
+            return cur.fetchall()
+    
+    def get_table(self, table_name: str, select: str="*"):
+        """
+        Retrieve data from a specified table in the database.
+
+        Args:
+            table_name (str): The name of the table to retrieve data from.
+            select (str, optional): The columns to retrieve. Defaults to "*".
+
+        Returns:
+            list: A list of tuples containing the retrieved data.
+        """
+        with self._conn as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT {} FROM {}".format(select, table_name))
+            return cur.fetchall()
+    
+    def print_table(self, table_name: str, select="*"):
+        """
+        Prints the contents of a table.
+
+        Args:
+            table_name (str): The name of the table to print.
+            select (str, optional): The columns to select. Defaults to "*".
+
+        Returns:
+            None
+        """
+        with self._conn as conn:
+            print(pd.read_sql_query("SELECT {} FROM {}".format(select, table_name), conn))
+        print()
+    
+    def location_to_str(self, location: tuple):
+        if len(location) != 6:
+            raise ValueError("Location must be a tuple of length 6.")
+        if location[3] is None:
+            return "{}-{}-{}".format(location[0], location[1], location[2])
+        else:
+            return location[3]
+
 def handle_input(options: dict, prompt="Valitse toiminto: "):
     while True:
         for key, value in options.items():
             print("{}. {}".format(key, value))
         choice = input(prompt).lower()
+        print()
         if choice in options:
             return choice
         print("Virheellinen syöte, yritä uudelleen.")
