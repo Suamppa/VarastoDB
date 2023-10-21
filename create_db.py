@@ -152,11 +152,8 @@ def create_db():
                     """)
         
         connection.commit()
-    if not populate_db:
-        return
-    
-    with db._conn as connection:
-        cur = connection.cursor()
+        if not populate_db:
+            return
         
         ### Add some items to the tables
         # Add a couple of warehouse entries
@@ -191,25 +188,11 @@ def create_db():
         
         # Add some pallets
         # Tyyppi, Sijainti, Lavanumero
-        sijainnit = cur.execute("SELECT STunniste FROM SIJAINTI;")
-        sijainnit = sijainnit.fetchall()
-        paikat = random.sample(sijainnit, k=200)
         for i in range(220):
             cur.execute("INSERT INTO LAVA(Tyyppi) VALUES (?);", (random.choice(["EUR", "FIN", "TEH"]),))
-        lavat = cur.execute("SELECT Lavanumero FROM LAVA;")
-        lavat = lavat.fetchall()
-        connection.commit()
         
-    for i, paikka in enumerate(paikat):
-        db.move_pallet(lavat[i][0], paikka[0])
-        # cur.execute("UPDATE LAVA SET Sijainti = ? WHERE Lavanumero = ?", (paikka[0], lavat[i][0]))
-        # cur.execute("INSERT INTO SIIRTOTAPAHTUMA VALUES (?, ?, ?)",
-        #             (datetime.datetime.now().isoformat(" ", "seconds"), lavat[i][0], paikka[0]))
-        
-    # Add some products
-    # Tuotenumero, Nimi, Valmistaja, Tuoteryhmä, Säilytyslt
-    with db._conn as connection:
-        cur = connection.cursor()
+        # Add some products
+        # Tuotenumero, Nimi, Valmistaja, Tuoteryhmä, Säilytyslt
         cur.execute("""
                     INSERT INTO TUOTE(Nimi, Valmistaja, Tuoteryhmä, Säilytyslt) VALUES
                         ('Luuton joulukinkku n. 5kg', 'Atria', 'Lihapakasteet', -18),
@@ -245,6 +228,8 @@ def create_db():
         
         # Bind most batches to pallets
         # Lavanumero, Eränumero
+        lavat = cur.execute("SELECT Lavanumero FROM LAVA;")
+        lavat = lavat.fetchall()
         erat = cur.execute("SELECT Eränumero FROM ERÄ;")
         erat = erat.fetchall()
         siirto_lkm = int(len(erat) * (7/8))
@@ -255,7 +240,15 @@ def create_db():
             siirrot.append((val_lavat[i][0], val_erat[i][0]))
         cur.executemany("INSERT INTO ERÄ_LAVALLA(Lavanumero, Eränumero) VALUES (?, ?);", siirrot)
         
+        sijainnit = cur.execute("SELECT STunniste FROM SIJAINTI;")
+        sijainnit = sijainnit.fetchall()
+        
         connection.commit()
+    
+    paikat = random.sample(sijainnit, k=len(lavat))
+    for i, paikka in enumerate(paikat):
+        db.move_pallet(lavat[i][0], paikka[0])
+        
     print("Tietokanta '{}' luotu.".format(db_name))
 
 if __name__ == "__main__":
