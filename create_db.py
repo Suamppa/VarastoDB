@@ -245,6 +245,7 @@ def create_db():
         
         connection.commit()
     
+    # Move the pallets to random locations
     paikat = random.sample(sijainnit, k=len(lavat))
     for i, paikka in enumerate(paikat):
         db.move_pallet(lavat[i][0], paikka[0])
