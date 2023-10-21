@@ -150,9 +150,9 @@ def create_db():
         lavat = lavat.fetchall()
         for i, paikka in enumerate(paikat):
             # vl.move_pallet(cur, lavat[i][0], paikka[0])
-            cur.execute("UPDATE LAVA SET Sijainti = ? WHERE Lavanumero = ?", (paikka[0], lavat[1][0]))
+            cur.execute("UPDATE LAVA SET Sijainti = ? WHERE Lavanumero = ?", (paikka[0], lavat[i][0]))
             cur.execute("INSERT INTO SIIRTOTAPAHTUMA VALUES (?, ?, ?)",
-                        (datetime.datetime.now().isoformat(" ", "seconds"), lavat[1][0], paikka[0]))
+                        (datetime.datetime.now().isoformat(" ", "seconds"), lavat[i][0], paikka[0]))
         
         # Add some products
         # Tuotenumero, Nimi, Valmistaja, Tuoteryhmä, Säilytyslt
