@@ -33,16 +33,23 @@ class _Connection:
             self._connection = None
 
 class Database:
+    """
+    A class representing a SQLite database.
+
+    Attributes:
+        _conn (_Connection): The connection to the SQLite database.
+    """
+
     def __init__(self, db_path: str):
         """
         Initializes a new instance of the Database class.
 
         Args:
-            conn (Connection): A reference to the connection to the database.
+            db_path (str): The path to the SQLite database file.
         """
         self._conn = _Connection(db_path)
     
-    def sanitize(self, string: str):
+    def _sanitize(self, string: str):
         """
         Sanitizes a string for use in SQL queries. Not bulletproof.
 
@@ -55,24 +62,38 @@ class Database:
         return (string.strip().replace("'", "''").replace('"', '""').replace(";", "")
                 .replace("--", "").replace("/*", "").replace("*/", ""))
     
-    def query(self, query: str, params: tuple=()):
+    def _query(self, query: str, params: tuple|dict=()):
         """
         Executes the given SQL query with the given parameters and returns the result set.
 
         Args:
             query (str): The SQL query to execute.
-            params (tuple, optional): The parameters to use in the query. Defaults to ().
+            params (tuple|dict, optional): The parameters to use in the query. Defaults to ().
 
         Returns:
             list: The result set of the query.
         """
         with self._conn as conn:
             cur = conn.cursor()
-            if not len(params):
-                cur.execute(query)
-            else:
-                cur.execute(query, params)
+            cur.execute(query, params)
             return cur.fetchall()
+    
+    def search(self, table_name: str, search_term: str, select: str="*"):
+        """
+        Search for a given search term in the specified table in the database.
+
+        Args:
+            table_name (str): The name of the table to search in.
+            search_term (str): The search term to search for.
+            select (str, optional): The columns to select. Defaults to "*".
+
+        Returns:
+            list: A list of tuples containing the search results.
+        """
+        table_name = self._sanitize(table_name)
+        search_term = self._sanitize(search_term)
+        select = self._sanitize(select)
+        return self._query("SELECT {0} FROM {1} WHERE * LIKE '%{2}%'".format(select, table_name, search_term))
     
     def get_table(self, table_name: str, select: str="*"):
         """
@@ -85,9 +106,9 @@ class Database:
         Returns:
             list: A list of tuples containing the retrieved data.
         """
-        table_name = self.sanitize(table_name)
-        select = self.sanitize(select)
-        return self.query("SELECT {} FROM {}", (select, table_name))
+        table_name = self._sanitize(table_name)
+        select = self._sanitize(select)
+        return self._query("SELECT {} FROM {}".format(select, table_name))
     
     def print_table(self, table_name: str, select="*"):
         """
@@ -100,8 +121,8 @@ class Database:
         Returns:
             None
         """
-        table_name = self.sanitize(table_name)
-        select = self.sanitize(select)
+        table_name = self._sanitize(table_name)
+        select = self._sanitize(select)
         with self._conn as conn:
             print(pd.read_sql_query("SELECT {} FROM {}".format(select, table_name), conn))
         print()
@@ -125,11 +146,34 @@ class Database:
             conn.commit()
     
 def location_to_str(aisle: int|None, section: int|None, floor: int|None, floor_unit: str|None):
+    """
+    Converts the given aisle, section, floor, and floor_unit values into a string representation of a location.
+
+    Args:
+        aisle (int|None): The aisle number of the location.
+        section (int|None): The section number of the location.
+        floor (int|None): The floor number of the location.
+        floor_unit (str|None): The floor unit of the location.
+
+    Returns:
+        str: A string representation of the location, in the format "aisle-section-floor" if all values are not
+        None, or just the floor_unit if any of the other values are None.
+    """
     if aisle is None or section is None or floor is None:
         return floor_unit
     return "{}-{}-{}".format(aisle, section, floor)
 
 def handle_input(options: dict[str, str], prompt="Valitse toiminto: "):
+    """
+    Displays a list of options and prompts the user to choose one.
+    
+    Args:
+        options (dict[str, str]): A dictionary of options to choose from, where the keys are the option codes and the values are the option descriptions.
+        prompt (str): The prompt to display to the user.
+    
+    Returns:
+        str: The code of the chosen option.
+    """
     while True:
         for key, value in options.items():
             print("{}. {}".format(key, value))
