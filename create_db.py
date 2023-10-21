@@ -21,7 +21,8 @@ def create_db():
     if os.path.exists(db_name):
         os.remove(db_name)
     
-    with vl.Connection(db_name) as connection:
+    db = vl.Database(vl.Connection(db_name))
+    with db._conn as connection:
         cur = connection.cursor()
     
         ### Create tables
@@ -104,11 +105,61 @@ def create_db():
                         FOREIGN KEY (Eränumero) REFERENCES ERÄ(Eränumero)
                                     ON DELETE CASCADE ON UPDATE CASCADE );
                     """)
+        connection.commit()
+        
+        ### Create views
+        cur.execute("""
+                    CREATE VIEW TUOTETIEDOT AS
+                    SELECT T.*, COUNT(E.Eränumero) AS Erämäärä
+                    FROM TUOTE T LEFT OUTER JOIN ERÄ E ON T.Tuotenumero = E.Tuotenumero
+                    GROUP BY T.Tuotenumero;
+                    """)
+        cur.execute("""
+                    CREATE VIEW TUOTEERÄT AS
+                    SELECT T.Nimi, T.Valmistaja, E.*, T.Tuoteryhmä, T.Säilytyslt, EL.Lavanumero, L.Tyyppi,
+                           SIJAINTI_STR(S.Hyllyväli, S.Sektio, S.Kerros, S.Kuormaruutu) AS Sijainti, S.Varasto
+                    FROM ERÄ E JOIN TUOTE T ON E.Tuotenumero = T.Tuotenumero
+                    LEFT OUTER JOIN ERÄ_LAVALLA EL ON E.Eränumero = EL.Eränumero
+                    LEFT OUTER JOIN LAVA L ON EL.Lavanumero = L.Lavanumero
+                    LEFT OUTER JOIN SIJAINTI S ON L.Sijainti = S.STunniste;
+                    """)
+        cur.execute("""
+                    CREATE VIEW LAVAPAIKAT AS
+                    SELECT SIJAINTI_STR(S.Hyllyväli, S.Sektio, S.Kerros, S.Kuormaruutu) AS Sijainti,
+                           S.Varasto, L.Lavanumero, L.Tyyppi, T.Nimi, E.PE_pvm, E.Ltk_määrä
+                    FROM SIJAINTI S LEFT OUTER JOIN LAVA L ON S.STunniste = L.Sijainti
+                    LEFT OUTER JOIN ERÄ_LAVALLA EL ON L.Lavanumero = EL.Lavanumero
+                    LEFT OUTER JOIN ERÄ E ON EL.Eränumero = E.Eränumero
+                    LEFT OUTER JOIN TUOTE T ON E.Tuotenumero = T.Tuotenumero;
+                    """)
+        cur.execute("""
+                    CREATE VIEW LAVATIEDOT AS
+                    SELECT L.Lavanumero, L.Tyyppi,
+                           SIJAINTI_STR(S.Hyllyväli, S.Sektio, S.Kerros, S.Kuormaruutu) AS Sijainti,
+                           E.Ltk_määrä, T.Nimi AS Tuotenimi, E.PE_pvm, ST.Siirtoaika
+                    FROM LAVA L LEFT OUTER JOIN SIJAINTI S ON L.Sijainti = S.STunniste
+                    LEFT OUTER JOIN ERÄ_LAVALLA EL ON L.Lavanumero = EL.Lavanumero
+                    LEFT OUTER JOIN ERÄ E ON EL.Eränumero = E.Eränumero
+                    LEFT OUTER JOIN TUOTE T ON E.Tuotenumero = T.Tuotenumero
+                    LEFT OUTER JOIN SIIRTOTAPAHTUMA ST ON L.Lavanumero = ST.Lavanumero
+                    GROUP BY L.Lavanumero;
+                    """)
+        cur.execute("""
+                    CREATE VIEW VARASTOTIEDOT AS
+                    SELECT V.VTunniste AS Tunniste, V.Osoite, COUNT(L.Lavanumero) AS Lavat,
+                           COUNT(S.STunniste) AS Lavapaikat
+                    FROM VARASTO V LEFT OUTER JOIN SIJAINTI S ON V.VTunniste = S.Varasto
+                    LEFT OUTER JOIN LAVA L ON S.STunniste = L.Sijainti
+                    GROUP BY V.VTunniste;
+                    """)
         
         connection.commit()
-        if not populate_db:
-            return
+    if not populate_db:
+        return
     
+    with db._conn as connection:
+        cur = connection.cursor()
+        
         ### Add some items to the tables
         # Add a couple of warehouse entries
         # VTunniste, Osoite
@@ -149,14 +200,18 @@ def create_db():
             cur.execute("INSERT INTO LAVA(Tyyppi) VALUES (?);", (random.choice(["EUR", "FIN", "TEH"]),))
         lavat = cur.execute("SELECT Lavanumero FROM LAVA;")
         lavat = lavat.fetchall()
-        for i, paikka in enumerate(paikat):
-            # vl.move_pallet(cur, lavat[i][0], paikka[0])
-            cur.execute("UPDATE LAVA SET Sijainti = ? WHERE Lavanumero = ?", (paikka[0], lavat[i][0]))
-            cur.execute("INSERT INTO SIIRTOTAPAHTUMA VALUES (?, ?, ?)",
-                        (datetime.datetime.now().isoformat(" ", "seconds"), lavat[i][0], paikka[0]))
+        connection.commit()
         
-        # Add some products
-        # Tuotenumero, Nimi, Valmistaja, Tuoteryhmä, Säilytyslt
+    for i, paikka in enumerate(paikat):
+        db.move_pallet(lavat[i][0], paikka[0])
+        # cur.execute("UPDATE LAVA SET Sijainti = ? WHERE Lavanumero = ?", (paikka[0], lavat[i][0]))
+        # cur.execute("INSERT INTO SIIRTOTAPAHTUMA VALUES (?, ?, ?)",
+        #             (datetime.datetime.now().isoformat(" ", "seconds"), lavat[i][0], paikka[0]))
+        
+    # Add some products
+    # Tuotenumero, Nimi, Valmistaja, Tuoteryhmä, Säilytyslt
+    with db._conn as connection:
+        cur = connection.cursor()
         cur.execute("""
                     INSERT INTO TUOTE(Nimi, Valmistaja, Tuoteryhmä, Säilytyslt) VALUES
                         ('Luuton joulukinkku n. 5kg', 'Atria', 'Lihapakasteet', -18),
@@ -180,9 +235,13 @@ def create_db():
             eramaara = random.randint(10, 30)
             for x in range(eramaara):
                 pe = vl.randdate()
-                erat.append((random.randint(1, 999999), tuote[0], pe, met[ind], meyks[ind], maara[ind], maarayks[ind], ltk[ind]))
+                erat.append(
+                    (random.randint(1, 999999), tuote[0], pe, met[ind],
+                     meyks[ind], maara[ind], maarayks[ind], ltk[ind])
+                    )
         cur.executemany("""
-                        INSERT INTO ERÄ(Eränumero, Tuotenumero, PE_pvm, Myyntierät, ME_yksikkö, Määrä, Määräyks, Ltk_määrä)
+                        INSERT INTO ERÄ(Eränumero, Tuotenumero, PE_pvm, Myyntierät,
+                        ME_yksikkö, Määrä, Määräyks, Ltk_määrä)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?);
                         """, erat)
         
@@ -199,7 +258,7 @@ def create_db():
         cur.executemany("INSERT INTO ERÄ_LAVALLA(Lavanumero, Eränumero) VALUES (?, ?);", siirrot)
         
         connection.commit()
-        print("Tietokanta '{}' luotu.".format(db_name))
+    print("Tietokanta '{}' luotu.".format(db_name))
 
 if __name__ == "__main__":
     create_db()
