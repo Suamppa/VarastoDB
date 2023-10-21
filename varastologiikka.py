@@ -4,7 +4,7 @@ import random
 import sqlite3 as sql
 
 # TODO: This class will turn private (_Connection) in the future
-class Connection:
+class _Connection:
     """
     A context manager for connecting to a SQLite database.
 
@@ -34,14 +34,14 @@ class Connection:
             self._connection = None
 
 class Database:
-    def __init__(self, conn: Connection):
+    def __init__(self, db_path: str):
         """
         Initializes a new instance of the Database class.
 
         Args:
             conn (Connection): A reference to the connection to the database.
         """
-        self._conn = conn
+        self._conn = _Connection(db_path)
     
     def sanitize(self, string: str):
         """

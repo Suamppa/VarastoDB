@@ -19,7 +19,7 @@ def create_db():
     if os.path.exists(db_name):
         os.remove(db_name)
     
-    db = vl.Database(vl.Connection(db_name))
+    db = vl.Database(db_name)
     with db._conn as connection:
         cur = connection.cursor()
     

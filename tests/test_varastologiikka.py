@@ -8,7 +8,7 @@ class TestVarastoLogiikka(unittest.TestCase):
         self.db_path = "test.db"
         if os.path.exists(self.db_path):
             os.remove(self.db_path)
-        self.db = vl.Database(vl.Connection(self.db_path))
+        self.db = vl.Database(self.db_path)
         
         with self.db._conn as conn:
             cur = conn.cursor()
