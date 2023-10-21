@@ -3,7 +3,6 @@ import random
 import sys
 import varastologiikka as vl
 
-### TODO: Make use of the Database class before Connection can be turned private
 def create_db():
     db_name = "varasto.db"
     populate_db = True
