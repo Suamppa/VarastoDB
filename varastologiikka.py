@@ -3,7 +3,6 @@ import pandas as pd
 import random
 import sqlite3 as sql
 
-# TODO: This class will turn private (_Connection) in the future
 class _Connection:
     """
     A context manager for connecting to a SQLite database.
