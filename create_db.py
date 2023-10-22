@@ -238,18 +238,18 @@ def create_db():
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?);
                         """, erat)
         
-        # Bind most batches to pallets
+        # Bind batches to pallets
         # Lavanumero, Eränumero
         lavat = cur.execute("SELECT Lavanumero FROM LAVA;")
         lavat = lavat.fetchall()
         erat = cur.execute("SELECT Eränumero FROM ERÄ;")
         erat = erat.fetchall()
-        siirto_lkm = int(len(erat) * (7/8))
+        siirto_lkm = len(erat)
         val_lavat = random.sample(lavat, k=siirto_lkm)
-        val_erat = random.sample(erat, k=siirto_lkm)
+        # val_erat = random.sample(erat, k=siirto_lkm)
         siirrot = []
         for i in range(siirto_lkm):
-            siirrot.append((val_lavat[i][0], val_erat[i][0]))
+            siirrot.append((val_lavat[i][0], erat[i][0]))
         cur.executemany("INSERT INTO ERÄ_LAVALLA(Lavanumero, Eränumero) VALUES (?, ?);", siirrot)
         
         sijainnit = cur.execute("SELECT STunniste FROM SIJAINTI;")
@@ -258,7 +258,7 @@ def create_db():
         connection.commit()
     
     # Move the pallets to random locations
-    paikat = random.sample(sijainnit, k=len(lavat))
+    paikat = random.sample(sijainnit, k=int(len(lavat) * (7/8)))
     for i, paikka in enumerate(paikat):
         db.move_pallet(lavat[i][0], paikka[0])
         
