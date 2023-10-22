@@ -26,6 +26,7 @@ def search_db(db: vl.Database):
             db.search("VARASTOTIEDOT", search_term)
         elif choice == "6": # Siirtotapahtumat
             db.search("LAVASIIRROT", search_term)
+        input("Paina Enter jatkaaksesi...")
 
 # Selaa tietoja
 def scroll_info(db: vl.Database):
@@ -46,12 +47,13 @@ def scroll_info(db: vl.Database):
             db.print_table("LAVATIEDOT")
         elif choice == "5": # Varastot
             db.print_table("VARASTOTIEDOT")
+        input("Paina Enter jatkaaksesi...")
 
 def main():
     print("\nTervetuloa varastonhallintajärjestelmään!\n")
     db = vl.Database("varasto.db")
     while True:
-        options = ("Haku", "Selaa tietoja", "Lisää tietoja")
+        options = ("Haku", "Selaa tietoja", "Muokkaa tietoja")
         choice = vl.handle_input(options, back_label="Poistu")
         
         if choice == "0": # Poistu
@@ -60,7 +62,7 @@ def main():
             search_db(db)
         elif choice == "2": # Selaa tietoja
             scroll_info(db)
-        elif choice == "3": # Lisää tietoja
+        elif choice == "3": # Muokkaa tietoja
             pass
         
     print("Järjestelmä suljetaan.")
