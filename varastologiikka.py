@@ -1,4 +1,5 @@
 import datetime
+from typing import Sequence
 import pandas as pd
 import random
 import sqlite3 as sql
@@ -93,7 +94,27 @@ class Database:
         table_name = self._sanitize(table_name)
         search_term = self._sanitize(search_term)
         select = self._sanitize(select)
-        return self._query("SELECT {0} FROM {1} WHERE * LIKE '%{2}%'".format(select, table_name, search_term))
+        # cols is [(cid, col_name, data_type, not_null, default_value, pk)]
+        cols = self._query("PRAGMA table_info({});".format(table_name))
+        keys = ("cid", "col_name", "data_type", "not_null", "default_value", "pk")
+        # Convert cols to a list of dictionaries with keys
+        attrs = [dict(zip(keys, col)) for col in cols]
+        num_types = ("INT", "REAL", "FLOAT", "DOUBLE", "NUMERIC", "DECIMAL")
+        
+        # Build the query, making sure data types are handled correctly
+        query = "SELECT {} FROM {} WHERE ".format(select, table_name)
+        for attr in attrs:
+            if search_term.isdecimal():
+                for num_type in num_types:
+                    if attr["data_type"] in num_type:
+                        # Numeric types are compared with = instead of LIKE
+                        query += "({} = {}) OR ".format(attr["col_name"], search_term)
+                        break
+                else:
+                    query += "({} LIKE '%{}%') OR ".format(attr["col_name"], search_term)
+            else:
+                query += "({} LIKE '%{}%') OR ".format(attr["col_name"], search_term)
+        self.print_query(query[:-4] + ";")
     
     def get_table(self, table_name: str, select: str="*"):
         """
@@ -125,6 +146,25 @@ class Database:
         select = self._sanitize(select)
         with self._conn as conn:
             print(pd.read_sql_query("SELECT {} FROM {}".format(select, table_name), conn))
+        print()
+    
+    def print_query(self, query: str, params: tuple|dict=()):
+        """
+        Prints the result of a query.
+
+        Args:
+            query (str): The query to execute.
+            params (tuple|dict, optional): The parameters to use in the query. Defaults to ().
+
+        Returns:
+            None
+        """
+        with self._conn as conn:
+            res = pd.read_sql_query(query, conn, params=params)
+            if res.empty:
+                print("Ei tuloksia.")
+            else:
+                print(res)
         print()
     
     def move_pallet(self, pallet: int, move_to: int):
@@ -163,17 +203,26 @@ def location_to_str(aisle: int|None, section: int|None, floor: int|None, floor_u
         return floor_unit
     return "{}-{}-{}".format(aisle, section, floor)
 
-def handle_input(options: dict[str, str], prompt="Valitse toiminto: "):
+def handle_input(option_labels: Sequence[str], prompt="Valitse toiminto: ", back: str|None="0",
+                 back_label: str="Takaisin", allow_empty=True, empty_label=""):
     """
-    Displays a list of options and prompts the user to choose one.
-    
+    Displays a list of options to the user and prompts them to choose one.
+
     Args:
-        options (dict[str, str]): A dictionary of options to choose from, where the keys are the option codes and the values are the option descriptions.
-        prompt (str): The prompt to display to the user.
-    
+        option_labels (Sequence[str]): A sequence of strings representing the options to display.
+        prompt (str, optional): The prompt to display to the user. Defaults to "Valitse toiminto: ".
+        back (str|None, optional): The label for the "back" option, or None if no back option should be displayed.
+                                   Defaults to "0".
+        allow_empty (bool, optional): Whether to allow the user to choose an empty option. Defaults to True.
+
     Returns:
-        str: The code of the chosen option.
+        str: The key of the chosen option.
     """
+    options = {str(i+1): label for i, label in enumerate(option_labels)}
+    if back:
+        options[back] = back_label
+    if allow_empty:
+        options[""] = empty_label
     while True:
         for key, value in options.items():
             print("{}. {}".format(key, value))
