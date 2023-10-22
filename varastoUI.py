@@ -1,40 +1,40 @@
 import varastologiikka as vl
 
+# Haku
 def search_db(db: vl.Database):
     while True:
         print("Hae:")
-        labels = ["Tuotteet", "Erät", "Lavapaikat", "Lavat", "Varastot", "Siirtotapahtumat"]
-        options = {str(i+1): label for i, label in enumerate(labels)}
-        options["0"] = "Palaa"
+        options = ("Tuotteet", "Erät", "Lavapaikat", "Lavat", "Varastot", "Siirtotapahtumat")
         choice = vl.handle_input(options)
         
-        if choice == "0": # Palaa
+        if choice == "0" or choice == "": # Takaisin
             return
         
+        print(options[int(choice)-1])
         search_term = input("Hakusana: ")
+        if search_term == "": # Peruuta
+            continue
         if choice == "1": # Tuotteet
-            pass
+            db.search("TUOTETIEDOT", search_term)
         elif choice == "2": # Erät
-            pass
+            db.search("TUOTEERÄT", search_term)
         elif choice == "3": # Lavapaikat
-            pass
+            db.search("LAVAPAIKAT", search_term)
         elif choice == "4": # Lavat
-            pass
+            db.search("LAVATIEDOT", search_term)
         elif choice == "5": # Varastot
-            pass
+            db.search("VARASTOTIEDOT", search_term)
         elif choice == "6": # Siirtotapahtumat
-            pass
+            db.search("LAVASIIRROT", search_term)
 
 # Selaa tietoja
 def scroll_info(db: vl.Database):
     while True: 
         print("Selaa:")
-        labels = ["Tuotteet", "Erät", "Lavapaikat", "Lavat", "Varastot"]
-        options = {str(i+1): label for i, label in enumerate(labels)}
-        options["0"] = "Palaa"
+        options = ("Tuotteet", "Erät", "Lavapaikat", "Lavat", "Varastot")
         choice = vl.handle_input(options)
         
-        if choice == "0": # Palaa
+        if choice == "0" or choice == "": # Takaisin
             return
         elif choice == "1": # Tuotteet
             db.print_table("TUOTETIEDOT")
@@ -51,8 +51,8 @@ def main():
     print("\nTervetuloa varastonhallintajärjestelmään!\n")
     db = vl.Database("varasto.db")
     while True:
-        options = {"1": "Haku", "2": "Selaa tietoja", "3": "Lisää tietoja", "0": "Poistu"}
-        choice = vl.handle_input(options)
+        options = ("Haku", "Selaa tietoja", "Lisää tietoja")
+        choice = vl.handle_input(options, back_label="Poistu")
         
         if choice == "0": # Poistu
             break
