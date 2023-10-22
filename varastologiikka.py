@@ -2,6 +2,7 @@ import datetime
 from typing import Sequence
 import pandas as pd
 import random
+import re
 import sqlite3 as sql
 
 class _Connection:
@@ -50,7 +51,8 @@ class Database:
         """
         self._conn = _Connection(db_path)
     
-    def _sanitize(self, string: str):
+    @staticmethod
+    def sanitize(string: str):
         """
         Sanitizes a string for use in SQL queries. Not bulletproof.
 
@@ -63,7 +65,7 @@ class Database:
         return (string.strip().replace("'", "''").replace('"', '""').replace(";", "")
                 .replace("--", "").replace("/*", "").replace("*/", ""))
     
-    def _query(self, query: str, params: tuple|dict=()):
+    def _query(self, query: str, params: dict|Sequence=()):
         """
         Executes the given SQL query with the given parameters and returns the result set.
 
@@ -79,7 +81,7 @@ class Database:
             cur.execute(query, params)
             return cur.fetchall()
     
-    def search(self, table_name: str, search_term: str, select: str="*"):
+    def search_and_print(self, table_name: str, search_term: str, select: str="*"):
         """
         Search for a given search term in the specified table in the database.
 
@@ -91,9 +93,9 @@ class Database:
         Returns:
             list: A list of tuples containing the search results.
         """
-        table_name = self._sanitize(table_name)
-        search_term = self._sanitize(search_term)
-        select = self._sanitize(select)
+        table_name = self.sanitize(table_name)
+        search_term = self.sanitize(search_term)
+        select = self.sanitize(select)
         # cols is [(cid, col_name, data_type, not_null, default_value, pk)]
         cols = self._query("PRAGMA table_info({});".format(table_name))
         keys = ("cid", "col_name", "data_type", "not_null", "default_value", "pk")
@@ -116,9 +118,39 @@ class Database:
                 query += "({} LIKE '%{}%') OR ".format(attr["col_name"], search_term)
         self.print_query(query[:-4] + ";")
     
-    def get_table(self, table_name: str, select: str="*"):
+    @staticmethod
+    def build_where(compare_attrs: Sequence, comparators: tuple[str,...], logicals: tuple[str,...]):
         """
-        Retrieve data from a specified table in the database.
+        Build a sequence of where clause statements with compared attributes and placeholders '?' around
+        the comparators followed by the logicals. The number of logicals must be one less than the
+        number of comparisons/comparators.
+
+        Args:
+            compare_attrs (tuple): A tuple of compared attributes to use in the where clause.
+            comparators (tuple[str]): A tuple of comparator strings to use between the placeholders.
+            logicals (tuple[str]): A tuple of logical strings to use between the comparisons.
+        
+        Returns:
+            str: A string representing the statements for a where clause.
+                 (Eg. "(? = ?) AND (? > ?)")
+        
+        Raises:
+            ValueError: If the number of logicals is not one less than the number of comparators.
+        """
+        if len(compare_attrs) == len(comparators) != (len(logicals) + 1):
+            raise ValueError("The number of logicals must be one less than the number of comparators.")
+        where = ""
+        for i, comp in enumerate(compare_attrs[:-1]):
+            where += "({} {} ?) {} ".format(comp, comparators[i], logicals[i])
+        where += "({} {} ?)".format(compare_attrs[-1], comparators[-1])
+        return where
+    
+    def get_table(
+        self, table_name: str, select: str="*", compare_attrs: Sequence=(), compare_to: Sequence=(),
+        comparators: tuple[str,...]=(), logicals: tuple[str,...]=()
+        ):
+        """
+        Retrieve data from a specified table in the database with an optional where clause.
 
         Args:
             table_name (str): The name of the table to retrieve data from.
@@ -127,8 +159,13 @@ class Database:
         Returns:
             list: A list of tuples containing the retrieved data.
         """
-        table_name = self._sanitize(table_name)
-        select = self._sanitize(select)
+        table_name = self.sanitize(table_name)
+        select = self.sanitize(select)
+        if len(compare_attrs) >= 2 and len(compare_to) >= 2:
+            placeholders = self.build_where(compare_attrs, comparators, logicals)
+            return self._query(
+                "SELECT {} FROM {} WHERE {}".format(select, table_name, placeholders), compare_to
+                )
         return self._query("SELECT {} FROM {}".format(select, table_name))
     
     def print_table(self, table_name: str, select="*"):
@@ -142,8 +179,8 @@ class Database:
         Returns:
             None
         """
-        table_name = self._sanitize(table_name)
-        select = self._sanitize(select)
+        table_name = self.sanitize(table_name)
+        select = self.sanitize(select)
         with self._conn as conn:
             print(pd.read_sql_query("SELECT {} FROM {}".format(select, table_name), conn))
         print()
@@ -167,6 +204,13 @@ class Database:
                 print(res)
         print()
     
+    def location_is_free(self, location: int) -> int|None:
+        res = self._query("SELECT Lavanumero FROM LAVAPAIKAT WHERE Sijainti_ID = ?", (location,))
+        if not res:
+            raise ValueError("Sijaintia ei ole olemassa.")
+        return res[0][0]
+    
+    # TODO: Make use of _query()
     def move_pallet(self, pallet: int, move_to: int):
         """
         Moves a pallet to a new location in the warehouse and records the transaction in the database.
@@ -184,6 +228,94 @@ class Database:
             cur.execute("INSERT INTO SIIRTOTAPAHTUMA VALUES (?, ?, ?)",
                         (datetime.datetime.now().isoformat(" ", "seconds"), pallet, move_to))
             conn.commit()
+    
+    def add_entry(self, table_name: str, values: tuple):
+        """
+        Adds a new entry to the specified table in the database.
+
+        Args:
+            table_name (str): The name of the table to add the entry to.
+            values (tuple): The values of the new entry.
+
+        Returns:
+            None
+        """
+        table_name = self.sanitize(table_name)
+        values = tuple(self.sanitize(str(value)) for value in values)
+        try:
+            with self._conn as conn:
+                cur = conn.cursor()
+                cur.execute("INSERT INTO {} VALUES ({})".format(table_name, ", ".join("?"*len(values))), values)
+        except sql.IntegrityError:
+            print("Virhe: Tietue on jo olemassa.")
+        except sql.OperationalError:
+            print("Virhe: Tietueen lisääminen ei onnistunut.")
+        else:
+            conn.commit()
+            print("{} lisätty tauluun {}.".format(", ".join(values), table_name.upper()))
+    
+    def delete_entry(self, table_name: str, key: str, value: str):
+        """
+        Deletes an entry from the specified table in the database.
+
+        Args:
+            table_name (str): The name of the table to delete the entry from.
+            key (str): The name of the column to use as the key.
+            value (str): The value of the key.
+
+        Returns:
+            None
+        """
+        table_name = self.sanitize(table_name)
+        key = self.sanitize(key)
+        value = self.sanitize(value)
+        try:
+            with self._conn as conn:
+                cur = conn.cursor()
+                cur.execute("DELETE FROM {} WHERE {} = ?".format(table_name, key), (value,))
+        except sql.OperationalError:
+            print("Virhe: Tietueen poistaminen ei onnistunut.")
+        else:
+            conn.commit()
+            print("Tietue poistettu taulusta {}.".format(table_name.upper()))
+    
+    @staticmethod
+    def is_location_format(location: str):
+        """
+        Check if the given location string is in the correct format.
+
+        Args:
+            location (str): The location string to check.
+
+        Returns:
+            tuple: A tuple containing two boolean values. The first value indicates if the
+            location is in the correct format, and the second value indicates if the location
+            is a floor unit (starting with "RU").
+        """
+        if bool(re.fullmatch(r"^RU\S+$", location)):
+            return True, True
+        return bool(re.fullmatch(r"^\d+-\d+-\d+$", location)), False
+    
+    @staticmethod
+    def str_to_location(location: str):
+        """
+        Converts a string representation of a location into a tuple of aisle, section, floor, and floor_unit values.
+
+        Args:
+            location (str): A string representation of a location, in the format "aisle-section-floor" or
+                            "floor_unit" (eg. "RU1234").
+
+        Returns:
+            tuple: A tuple of aisle, section, floor, and floor_unit values.
+        """
+        location = Database.sanitize(location).upper()
+        shelf = tuple()
+        valid, ru = Database.is_location_format(location)
+        if valid:
+            if ru:
+                return None, None, None, location
+            shelf = tuple(location.split("-"))
+        return shelf + (None,) * (4 - len(shelf))
     
 def location_to_str(aisle: int|None, section: int|None, floor: int|None, floor_unit: str|None):
     """
@@ -225,6 +357,8 @@ def handle_input(option_labels: Sequence[str], prompt="Valitse toiminto: ", back
         options[""] = empty_label
     while True:
         for key, value in options.items():
+            if allow_empty and key == "":
+                continue
             print("{}. {}".format(key, value))
         choice = input(prompt).lower()
         print()

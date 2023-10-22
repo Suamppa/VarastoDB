@@ -62,11 +62,12 @@ def create_db():
                         (Siirtoaika VARCHAR(23) CHECK (Siirtoaika LIKE '____-__-__ __:__:__'),
                          Lavanumero INTEGER NOT NULL,
                          Sijainti INTEGER NOT NULL,
-                        PRIMARY KEY (Lavanumero, Sijainti),
+                        PRIMARY KEY (Siirtoaika, Lavanumero, Sijainti),
                         FOREIGN KEY (Lavanumero) REFERENCES LAVA(Lavanumero)
                                     ON DELETE CASCADE ON UPDATE CASCADE,
                         FOREIGN KEY (Sijainti) REFERENCES SIJAINTI(STunniste)
                                     ON DELETE CASCADE ON UPDATE CASCADE );
+                        -- Siirtoaika has to be a key to allow moving back and forth at different times
                     """)
         cur.execute("""
                     CREATE TABLE TUOTE
@@ -124,7 +125,8 @@ def create_db():
         cur.execute("""
                     CREATE VIEW LAVAPAIKAT AS
                     SELECT SIJAINTI_STR(S.Hyllyväli, S.Sektio, S.Kerros, S.Kuormaruutu) AS Sijainti,
-                           S.Varasto, L.Lavanumero, L.Tyyppi, T.Nimi, E.PE_pvm, E.Ltk_määrä
+                           S.Varasto, L.Lavanumero, L.Tyyppi, T.Nimi, E.PE_pvm, E.Ltk_määrä,
+                           S.STunniste AS Sijainti_ID
                     FROM SIJAINTI S LEFT OUTER JOIN LAVA L ON S.STunniste = L.Sijainti
                     LEFT OUTER JOIN ERÄ_LAVALLA EL ON L.Lavanumero = EL.Lavanumero
                     LEFT OUTER JOIN ERÄ E ON EL.Eränumero = E.Eränumero
