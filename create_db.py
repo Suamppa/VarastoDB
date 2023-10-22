@@ -150,6 +150,18 @@ def create_db():
                     LEFT OUTER JOIN LAVA L ON S.STunniste = L.Sijainti
                     GROUP BY V.VTunniste;
                     """)
+        cur.execute("""
+                    CREATE VIEW LAVASIIRROT AS
+                    SELECT L.Lavanumero, ST.Siirtoaika,
+                           SIJAINTI_STR(S.Hyllyväli, S.Sektio, S.Kerros, S.Kuormaruutu) AS Sijainti,
+                           L.Tyyppi, T.Nimi AS Tuotenimi, E.PE_pvm
+                    FROM LAVA L LEFT OUTER JOIN SIJAINTI S ON L.Sijainti = S.STunniste
+                    LEFT OUTER JOIN ERÄ_LAVALLA EL ON L.Lavanumero = EL.Lavanumero
+                    LEFT OUTER JOIN ERÄ E ON EL.Eränumero = E.Eränumero
+                    LEFT OUTER JOIN TUOTE T ON E.Tuotenumero = T.Tuotenumero
+                    LEFT OUTER JOIN SIIRTOTAPAHTUMA ST ON L.Lavanumero = ST.Lavanumero
+                    GROUP BY L.Lavanumero, ST.Siirtoaika;
+                    """)
         
         connection.commit()
         if not populate_db:
