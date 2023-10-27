@@ -20,6 +20,6 @@ pip install pandas
 ```
 
 Käytä create_db.py uuden tietokannan luomiseksi, mutta paketissa tulee jo yks sen ajon tulos ([varasto.db](/varasto.db)).
-Käyttöliittymä käynnistyy kutsumalla varastoUI.py.
+Käyttöliittymä käynnistyy kutsumalla [varastoUI.py](/varastoUI.py).
 
 Ohjelma jäi vähän kesken, mutta periaate toimii ja vain hienosäätö ja syvällisemmät toiminnot, kuten tietojen lisäys ja poisto käyttäjän toimesta jäivät.
