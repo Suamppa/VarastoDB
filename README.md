@@ -1,9 +1,9 @@
 # VarastoDB
 
 ### ENG:
-NOTE! Make sure that the [pandas](https://pandas.pydata.org/) library is installed before running:
+NOTE! Remember to install requirements before running:
 ```
-pip install pandas
+pip install -r requirements.txt
 ```
 
 Use the file [create_db.py](/create_db.py) to initialize a new database but one generation is already included ([varasto.db](/varasto.db)).
@@ -14,9 +14,9 @@ The program remains a bit unfinished but the main features are present. The most
 ---
 
 ### FIN:
-HUOM! Varmista, että [pandas](https://pandas.pydata.org/)-kirjasto on asennettuna ennen ajoa:
+HUOM! Muista asentaa vaatimukset ennen ajoa:
 ```
-pip install pandas
+pip install -r requirements.txt
 ```
 
 Käytä create_db.py uuden tietokannan luomiseksi, mutta paketissa tulee jo yks sen ajon tulos ([varasto.db](/varasto.db)).
